@@ -7,7 +7,7 @@ use crate::statemachine::*;
 use crate::test_loader::*;
 use crate::traces::*;
 use cargo::core::{
-    compiler::{CompileMode, ProfileKind},
+    compiler::CompileMode,
     Package, Shell, Workspace,
 };
 use cargo::ops;
@@ -102,18 +102,18 @@ pub fn launch_tarpaulin(config: &Config) -> Result<(TraceMap, i32), RunError> {
         }
     };
     let mut cargo_config = CargoConfig::new(Shell::new(), cwd, home);
-    let flag_quiet = if config.verbose { None } else { Some(true) };
 
     // This shouldn't fail so no checking the error.
     let _ = cargo_config.configure(
         0u32,
-        flag_quiet,
-        &None,
+        !config.verbose,
+        None,
         config.frozen,
         config.locked,
         config.offline,
         &config.target_dir,
         &config.unstable_features,
+        &[],
     );
 
     let workspace = Workspace::new(config.manifest.as_path(), &cargo_config)
@@ -131,7 +131,7 @@ pub fn launch_tarpaulin(config: &Config) -> Result<(TraceMap, i32), RunError> {
             spec: vec![],
             target: None,
             profile_specified: config.force_clean,
-            profile_kind: ProfileKind::Dev,
+            requested_profile: "debug".into(),
             doc: false,
         };
         let _ = clean(&workspace, &clean_opt);
@@ -319,10 +319,7 @@ fn get_compile_options<'a>(
         copt.features = config.features.clone();
         copt.all_features = config.all_features;
         copt.no_default_features = config.no_default_features;
-        copt.build_config.profile_kind = match config.release {
-            true => ProfileKind::Release,
-            false => ProfileKind::Dev,
-        };
+
         copt.spec =
             match Packages::from_flags(config.all, config.exclude.clone(), config.packages.clone())
             {
